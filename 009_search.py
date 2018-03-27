@@ -1,69 +1,90 @@
-# ----------
+# -----------
 # User Instructions:
-# 
-# Define a function, search() that returns a list
-# in the form of [optimal path length, row, col]. For
-# the grid shown below, your function should output
-# [11, 4, 5].
 #
-# If there is no valid path from the start point
-# to the goal, your function should return the string
-# 'fail'
+# Modify the the search function so that it becomes
+# an A* search algorithm as defined in the previous
+# lectures.
+#
+# Your function should return the expanded grid
+# which shows, for each element, the count when
+# it was expanded or -1 if the element was never expanded.
+# 
+# If there is no path from init to goal,
+# the function should return the string 'fail'
 # ----------
 
-# Grid format:
-#   0 = Navigable space
-#   1 = Occupied space
-
-import heapq
-
-grid = [[0, 0, 1, 0, 0, 0],
-        [0, 0, 1, 0, 0, 0],
-        [0, 0, 0, 0, 1, 0],
-        [0, 0, 1, 1, 1, 0],
+grid = [[0, 1, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0],
         [0, 0, 0, 0, 1, 0]]
+heuristic = [[9, 8, 7, 6, 5, 4],
+             [8, 7, 6, 5, 4, 3],
+             [7, 6, 5, 4, 3, 2],
+             [6, 5, 4, 3, 2, 1],
+             [5, 4, 3, 2, 1, 0]]
+
 init = [0, 0]
-goal = [len(grid) - 1, len(grid[0]) - 1]
+goal = [len(grid)-1, len(grid[0])-1]
 cost = 1
 
-delta = [[-1, 0],  # go up
-         [0, -1],  # go left
-         [1, 0],  # go down
-         [0, 1]]  # go right
+delta = [[-1, 0 ], # go up
+         [ 0, -1], # go left
+         [ 1, 0 ], # go down
+         [ 0, 1 ]] # go right
 
 delta_name = ['^', '<', 'v', '>']
-checked = [[False for _ in range(len(grid[0]))] for __ in range(len(grid))]
 
-
-def check_validiy(x, y):
-    if(x >= 0 and x < len(grid) and
-       y >= 0 and y < len(grid[0])):
-        if not checked[x][y] and grid[x][y] == 0:
-            checked[x][y] = True
-            return True
-    return False
-
-def search(grid, init, goal, cost):
+def search(grid,init,goal,cost,heuristic):
     # ----------------------------------------
-    # insert code here
+    # modify the code below
     # ----------------------------------------
-    heap = []
-    print("initial open list:\n {0}".format([0, init[0], init[1]]))
-    heapq.heappush(heap, (0, [0, init[0], init[1]]))
-    checked[init[0]][init[1]] = True
-    while len(heap) != 0:
-        state = (heapq.heappop(heap))[1]
-        print("take list item\n{0}".format(state))
-        if goal == state[1:]:
-            print("###### Search successful")
-            print(state)
-            return
-        next_cost = state[0] + cost
-        print("new open list")
-        for d in delta:
-            next_state = [next_cost, state[1] + d[0], state[2] + d[1]]
-            if check_validiy(next_state[1], next_state[2]):
-                heapq.heappush(heap, (next_cost, next_state))
-                print("    {0}".format(next_state))
-    path = 'fail'
-    return path
+    closed = [[0 for col in range(len(grid[0]))] for row in range(len(grid))]
+    closed[init[0]][init[1]] = 1
+
+    expand = [[-1 for col in range(len(grid[0]))] for row in range(len(grid))]
+    action = [[-1 for col in range(len(grid[0]))] for row in range(len(grid))]
+
+    x = init[0]
+    y = init[1]
+    g = 0
+    f = g + heuristic[x][y]
+
+    open = [[f, g, x, y]]
+
+    found = False  # flag that is set when search is complete
+    resign = False # flag set if we can't find expand
+    count = 0
+    
+    while not found and not resign:
+        if len(open) == 0:
+            resign = True
+            return "Fail"
+        else:
+            open.sort()
+            open.reverse()
+            next = open.pop()
+            x = next[2]
+            y = next[3]
+            g = next[1]
+            expand[x][y] = count
+            count += 1
+            
+            if x == goal[0] and y == goal[1]:
+                found = True
+            else:
+                for i in range(len(delta)):
+                    x2 = x + delta[i][0]
+                    y2 = y + delta[i][1]
+                    if x2 >= 0 and x2 < len(grid) and y2 >=0 and y2 < len(grid[0]):
+                        if closed[x2][y2] == 0 and grid[x2][y2] == 0:
+                            g2 = g + cost
+                            f2 = g2 + heuristic[x2][y2]
+                            open.append([f2, g2, x2, y2])
+                            closed[x2][y2] = 1
+
+    return expand
+
+ret = search(grid,init,goal,cost,heuristic)
+for r in ret:
+    print(r)
