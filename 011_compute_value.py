@@ -9,10 +9,11 @@
 # assign that cell a value of 99.
 # ----------
 
-grid = [[0, 1, 0, 0, 0, 0],
-        [0, 1, 0, 0, 0, 0],
-        [0, 1, 0, 0, 0, 0],
-        [0, 1, 0, 0, 0, 0],
+grid = [[0, 0, 1, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0],
+        [0, 0, 0, 0, 1, 0],
+        [0, 0, 1, 1, 1, 0],
         [0, 0, 0, 0, 1, 0]]
 goal = [len(grid)-1, len(grid[0])-1]
 cost = 1 # the cost associated with moving from a cell to an adjacent one
@@ -49,7 +50,6 @@ def compute_value(grid,goal,cost):
             g2 = g + cost
             if r2 >= 0 and r2 < len(grid) and c2 >= 0 and c2 < len(grid[0]):
                 if grid[r2][c2] != 1 and g2 < value[r2][c2]:
-                    print("{}, {}".format(r2, c2))
                     value[r2][c2] = g2
                     queue.append([g2, r2, c2])
 
