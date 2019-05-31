@@ -1,17 +1,17 @@
-# -----------
+# ----------------
 # User Instructions
 #
-# Implement a P controller by running 100 iterations
-# of robot motion. The steering angle should be set
-# by the parameter tau so that:
+# Implement twiddle as shown in the previous two videos.
+# Your accumulated error should be very small!
 #
-# steering = -tau_p * CTE - tau_d * diff_CTE - tau_i * int_CTE
+# You don't have to use the exact values as shown in the video
+# play around with different values! This quiz isn't graded just see
+# how low of an error you can get.
 #
-# where the integrated crosstrack error (int_CTE) is
-# the sum of all the previous crosstrack errors.
-# This term works to cancel out steering drift.
+# Try to get your error below 1.0e-10 with as few iterations
+# as possible (too many iterations will cause a timeout).
 #
-# Only modify code at the bottom! Look for the TODO.
+# No cheating!
 # ------------
 
 import random
@@ -103,29 +103,75 @@ class Robot(object):
 #
 # run - does a single control run
 
-robot = Robot()
-robot.set(0, 1, 0)
+
+def make_robot():
+    """
+    Resets the robot back to the initial position and drift.
+    You'll want to call this after you call `run`.
+    """
+    robot = Robot()
+    robot.set(0.0, 1.0, 0.0)
+    robot.set_steering_drift(10.0 / 180.0 * np.pi)
+    return robot
 
 
-def run(robot, tau_p, tau_d, tau_i, n=100, speed=1.0):
+# NOTE: We use params instead of tau_p, tau_d, tau_i
+def run(robot, params, n=100, speed=1.0):
     x_trajectory = []
     y_trajectory = []
-    # TODO: your code here
-    last_cte, acu_cte = robot.y, 0
-    for i in range(n):
+    err = 0
+    prev_cte = robot.y
+    int_cte = 0
+    for i in range(2 * n):
         cte = robot.y
-        acu_cte += cte
-        steer = -tau_p * cte - tau_d * (cte - last_cte) - tau_i * acu_cte
+        diff_cte = cte - prev_cte
+        int_cte += cte
+        prev_cte = cte
+        steer = -params[0] * cte - params[1] * diff_cte - params[2] * int_cte
         robot.move(steer, speed)
         x_trajectory.append(robot.x)
         y_trajectory.append(robot.y)
-        last_cte = cte
-    return x_trajectory, y_trajectory
+        if i >= n:
+            err += cte ** 2
+    return x_trajectory, y_trajectory, err / n
 
 
-x_trajectory, y_trajectory = run(robot, 0.2, 3.0, 0.004)
+# Make this tolerance bigger if you are timing out!
+def twiddle(tol=0.01):
+    # Don't forget to call `make_robot` before every call of `run`!
+    param = [0.0, 0.0, 0.0]
+    d_param = [1.0, 1.0, 1.0]
+    robot = make_robot()
+    x_trajectory, y_trajectory, best_err = run(robot, param)
+    # TODO: twiddle loop here
+    while sum(d_param) > tol:
+        for i in range(len(d_param)):
+            param[i] += d_param[i]
+            robot = make_robot()
+            x_trajectory, y_trajectory, err = run(robot, param)
+            if err < best_err:
+                best_err = err
+                d_param[i] *= 1.1
+            else:
+                param[i] -= 2 * d_param[i]
+                robot = make_robot()
+                x_trajectory, y_trajectory, err = run(robot, param)
+                if err < best_err:
+                    best_err = err
+                    d_param[i] *= 1.1
+                else:
+                    param[i] += d_param[i]
+                    d_param[i] *= 0.9
+
+    return param, best_err
+
+
+params, err = twiddle()
+print("Final twiddle error = {}".format(err))
+robot = make_robot()
+x_trajectory, y_trajectory, err = run(robot, params)
 n = len(x_trajectory)
 
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8,8))
-ax1.plot(x_trajectory, y_trajectory, 'g', label='PID controller')
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8))
+ax1.plot(x_trajectory, y_trajectory, 'g', label='Twiddle PID controller')
 ax1.plot(x_trajectory, np.zeros(n), 'r', label='reference')
